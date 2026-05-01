@@ -1,36 +1,320 @@
 import { useState, useRef, useEffect } from "react";
 
-const SYS = `Tu Cihana yî — AI ya yekem a ku ji bo çanda, dîrok, ziman û nasnameyê Kurdî hatiye çêkirin.
+// ─── SYSTEM PROMPTS ────────────────────────────────────────────────────────────
+const SYS_CHAT = `Tu Cihana yî — serpêhatiya yekem a AI-ya ku bi taybetî ji bo çand, dîrok, ziman û nasnameyê Kurdî hatiye çêkirin.
+## NASNAME
+Tu Cihana yî. Navê te ji Kurmancî tê û tê wateya "cihan/dunya". Tu dengê gelê Kurdistanê yî.
+## ZIMAN
+- Bi Kurmancî/Erebî/Îngilîzî bersiv bide li gorî zimanê pirsê
+## ZANEBÛNA DÎROKÎ
+- Kurdan ji Mêdan (678 BZ) dihên
+- Selahedînê Eyûbî (1137–1193): Kurd bû, Orşelîmê di 1187 de vegerand
+- Peymana Sêvrê (1920) → Lozan (1923) wê şikandin
+- Dêrsim (1937–38): 13k–70k Kurd hatin kuştin
+- Enfal (1986–1989): 100k–182k Kurd hatin kuştin
+- Halabja 1988: 5.000+ sivîl bi kîmyewî hatin kuştin
+- Êzidî jenosîda 2014: Daaîş 5k–10k kuşt
+- Referendum 2017: %93 ji bo serxwebûnê
+## RÊZIK
+- Bersivên kurt û zelal (4-5 ristan). Serbilind û rastgo bimîne`;
 
-Mijarên sereke:
-- Dîroka Kurdistanê (Mêdan, Peymana Sêvrê, Lozan, Koçgirî, Dêrsim, Enfal, Halabja, Mahabad)
-- Selahedînê Eyûbî, Mîr Bedirxan, Qazî Mihemed, Mistefa Barzanî
-- Êzidî, Alevî û kevneşopiyên olî yên Kurdî
-- Zimanê Kurmancî û Soranî, rêziman, gotinên pêşiyan
-- Edebiyat: Ahmadî Xanî (Mem û Zîn), Cegerxwîn
-- Muzik, dengbêj, Newroz, çanda Kurdî
-- Rewşa Kurdên îro li Tirkiye, Îran, Irak û Sûriyê
+const SYS_LEARN = (levelName, lessonTitle, words) =>
+`Tu mamosteya Kurmancî yî — navê te Cihana ye. Asta heyî: ${levelName}. Dersa heyî: ${lessonTitle}.
+Peyivên vê dersê: ${words.map(w => `${w.ku}=${w.ar}`).join(", ")}
+- Bi hêdî û zelal axiv. Peyvan bi Kurmancî binivîse, paşê bi Erebî rave bike
+- Eger xwendekar çewtî bike, bi nermî rast bike û teşwîq bike
+- Pratîk û pirsên hêsan bipirse. Bersivên kurt bide (max 5 ristan)`;
 
-Rêzik:
-- Bersivên kurt û zelal (max 5 ristan)
-- Bi Kurmancî bersiv bide eger bi Kurmancî were pirsîn
-- Bi Erebî bersiv bide eger bi Erebî were pirsîn
-- Bi Îngilîzî bersiv bide eger bi Îngilîzî were pirsîn
-- Serbilind û rastgo bimîne`;
-
-const SUGGESTIONS = [
-  "Dîroka Kurdistanê çi ye?",
-  "Kî bû Selahedîn Eyûbî?",
-  "Êzidî kî ne?",
-  "Peymana Sêvrê çi bû?",
+// ─── CURRICULUM: 3 LEVELS ─────────────────────────────────────────────────────
+const LEVELS = [
+  {
+    id: 0,
+    title: "Destpêk",
+    subtitle: "Beginner · مبتدئ",
+    color: "#4CAF50",
+    colorDim: "rgba(76,175,80,0.15)",
+    emoji: "🌱",
+    desc: "Peyivên bingehîn — الكلمات الأساسية",
+    lessons: [
+      {
+        id: "1-1", title: "Silav", subtitle: "Greetings", emoji: "👋",
+        words: [
+          { ku: "Silav", ar: "مرحبا", en: "Hello" },
+          { ku: "Xweş hatî", ar: "أهلاً وسهلاً", en: "Welcome" },
+          { ku: "Spas", ar: "شكراً", en: "Thank you" },
+          { ku: "Baş e", ar: "بخير / حسناً", en: "Good / OK" },
+          { ku: "Bi xatirê te", ar: "مع السلامة", en: "Goodbye" },
+          { ku: "Navê te çi ye?", ar: "ما اسمك؟", en: "What is your name?" },
+        ],
+        quiz: [
+          { q: "كيف تقول 'مرحبا'؟", opts: ["Spas","Silav","Baş e","Xweş hatî"], ans: 1 },
+          { q: "ماذا تعني 'Spas'؟", opts: ["أهلاً","مع السلامة","شكراً","اسمك"], ans: 2 },
+          { q: "كيف تقول 'مع السلامة'؟", opts: ["Silav","Baş e","Spas","Bi xatirê te"], ans: 3 },
+        ],
+        practice: "Silav! Ez ê te fêrî silavkirinê bikim. Bêje 'Silav' û em dest pê bikin! (قل Silav لنبدأ!)",
+      },
+      {
+        id: "1-2", title: "Jimare", subtitle: "Numbers 1–10", emoji: "🔢",
+        words: [
+          { ku: "Yek", ar: "١", en: "1" }, { ku: "Du", ar: "٢", en: "2" },
+          { ku: "Sê", ar: "٣", en: "3" }, { ku: "Çar", ar: "٤", en: "4" },
+          { ku: "Pênc", ar: "٥", en: "5" }, { ku: "Şeş", ar: "٦", en: "6" },
+          { ku: "Heft", ar: "٧", en: "7" }, { ku: "Heşt", ar: "٨", en: "8" },
+          { ku: "Neh", ar: "٩", en: "9" }, { ku: "Deh", ar: "١٠", en: "10" },
+        ],
+        quiz: [
+          { q: "كيف تقول '٥'؟", opts: ["Çar","Şeş","Pênc","Heft"], ans: 2 },
+          { q: "ماذا تعني 'Deh'؟", opts: ["٧","١٠","٨","٩"], ans: 1 },
+          { q: "كيف تقول '٣'؟", opts: ["Du","Sê","Yek","Çar"], ans: 1 },
+        ],
+        practice: "Silav! Em ê hejmarên Kurmancî fêr bibin. Ji yek heta deh — em dest pê bikin ji 'Yek'!",
+      },
+      {
+        id: "1-3", title: "Reng", subtitle: "Colors", emoji: "🎨",
+        words: [
+          { ku: "Sor", ar: "أحمر", en: "Red" }, { ku: "Kesk", ar: "أخضر", en: "Green" },
+          { ku: "Zer", ar: "أصفر", en: "Yellow" }, { ku: "Şîn", ar: "أزرق", en: "Blue" },
+          { ku: "Spî", ar: "أبيض", en: "White" }, { ku: "Reş", ar: "أسود", en: "Black" },
+        ],
+        quiz: [
+          { q: "كيف تقول 'أحمر'؟", opts: ["Kesk","Zer","Sor","Şîn"], ans: 2 },
+          { q: "ماذا تعني 'Kesk'؟", opts: ["أصفر","أحمر","أزرق","أخضر"], ans: 3 },
+          { q: "كيف تقول 'أبيض'؟", opts: ["Reş","Spî","Şîn","Zer"], ans: 1 },
+        ],
+        practice: "Silav! Ala Kurdistanê: Sor, Kesk û Zer. Kîjan reng a bijare te ye?",
+      },
+      {
+        id: "1-4", title: "Malbat", subtitle: "Family", emoji: "👨‍👩‍👧",
+        words: [
+          { ku: "Bav", ar: "أب", en: "Father" }, { ku: "Dê", ar: "أم", en: "Mother" },
+          { ku: "Bira", ar: "أخ", en: "Brother" }, { ku: "Xwişk", ar: "أخت", en: "Sister" },
+          { ku: "Kal", ar: "جد", en: "Grandfather" }, { ku: "Pîr", ar: "جدة", en: "Grandmother" },
+        ],
+        quiz: [
+          { q: "كيف تقول 'أم'؟", opts: ["Bav","Dê","Keç","Pîr"], ans: 1 },
+          { q: "ماذا تعني 'Bira'؟", opts: ["أخت","أب","أخ","ابن"], ans: 2 },
+          { q: "كيف تقول 'جد'؟", opts: ["Kal","Kur","Pîr","Xwişk"], ans: 0 },
+        ],
+        practice: "Silav! Em ê peyivên malbatê fêr bibin. Malbata te çend kes in?",
+      },
+      {
+        id: "1-5", title: "Xwarin", subtitle: "Food & Drink", emoji: "🍽️",
+        words: [
+          { ku: "Nan", ar: "خبز", en: "Bread" }, { ku: "Av", ar: "ماء", en: "Water" },
+          { ku: "Goşt", ar: "لحم", en: "Meat" }, { ku: "Çay", ar: "شاي", en: "Tea" },
+          { ku: "Mast", ar: "لبن/يوغرت", en: "Yogurt" }, { ku: "Birinc", ar: "أرز", en: "Rice" },
+        ],
+        quiz: [
+          { q: "كيف تقول 'خبز'؟", opts: ["Av","Nan","Goşt","Çay"], ans: 1 },
+          { q: "ماذا تعني 'Çay'؟", opts: ["ماء","حليب","شاي","أرز"], ans: 2 },
+          { q: "كيف تقول 'ماء'؟", opts: ["Mast","Şîr","Av","Nan"], ans: 2 },
+        ],
+        practice: "Silav! Em ê peyivên xwarinê fêr bibin. Xwarina bijare ya Kurdî çi ye?",
+      },
+    ],
+  },
+  {
+    id: 1,
+    title: "Navîn",
+    subtitle: "Intermediate · متوسط",
+    color: "#D4930E",
+    colorDim: "rgba(212,147,14,0.15)",
+    emoji: "🌿",
+    desc: "Hevok û jiyana rojane — الجمل والحياة اليومية",
+    lessons: [
+      {
+        id: "2-1", title: "Dem û Roj", subtitle: "Time & Days", emoji: "📅",
+        words: [
+          { ku: "Îro", ar: "اليوم", en: "Today" }, { ku: "Sibê", ar: "غداً", en: "Tomorrow" },
+          { ku: "Duh", ar: "أمس", en: "Yesterday" }, { ku: "Êvarê", ar: "مساءً", en: "Evening" },
+          { ku: "Şev", ar: "ليل", en: "Night" }, { ku: "Bêrî", ar: "صباحاً", en: "Morning" },
+          { ku: "Hefteya", ar: "الأسبوع", en: "Week" }, { ku: "Sal", ar: "السنة", en: "Year" },
+        ],
+        quiz: [
+          { q: "ماذا تعني 'Îro'؟", opts: ["أمس","غداً","اليوم","الليل"], ans: 2 },
+          { q: "كيف تقول 'غداً'؟", opts: ["Duh","Sibê","Êvarê","Bêrî"], ans: 1 },
+          { q: "كيف تقول 'الليل'؟", opts: ["Bêrî","Şev","Dem","Sal"], ans: 1 },
+        ],
+        practice: "Silav! Îro em ê peyivên dem û rojan fêr bibin. Îro kîjan roj e?",
+      },
+      {
+        id: "2-2", title: "Xweza", subtitle: "Nature", emoji: "🌍",
+        words: [
+          { ku: "Çiya", ar: "جبل", en: "Mountain" }, { ku: "Rûbar", ar: "نهر", en: "River" },
+          { ku: "Dar", ar: "شجرة", en: "Tree" }, { ku: "Kulîlk", ar: "زهرة", en: "Flower" },
+          { ku: "Tavê", ar: "شمس", en: "Sun" }, { ku: "Heyv", ar: "قمر", en: "Moon" },
+          { ku: "Baran", ar: "مطر", en: "Rain" }, { ku: "Berfê", ar: "ثلج", en: "Snow" },
+        ],
+        quiz: [
+          { q: "كيف تقول 'جبل'؟", opts: ["Rûbar","Çiya","Dar","Baran"], ans: 1 },
+          { q: "ماذا تعني 'Heyv'؟", opts: ["شمس","نجم","قمر","سماء"], ans: 2 },
+          { q: "كيف تقول 'مطر'؟", opts: ["Berfê","Baran","Tavê","Kulîlk"], ans: 1 },
+        ],
+        practice: "Silav! Kurdistan bi çiyayên bilind û çemên xweşik navdar e. Em dest pê bikin — çiya bi Kurmancî çi ye?",
+      },
+      {
+        id: "2-3", title: "Hest", subtitle: "Feelings", emoji: "❤️",
+        words: [
+          { ku: "Kêfxweş im", ar: "أنا سعيد", en: "I am happy" },
+          { ku: "Xemgîn im", ar: "أنا حزين", en: "I am sad" },
+          { ku: "Westiyam", ar: "أنا متعب", en: "I am tired" },
+          { ku: "Birçî me", ar: "أنا جائع", en: "I am hungry" },
+          { ku: "Tî me", ar: "أنا عطشان", en: "I am thirsty" },
+          { ku: "Hez dikim", ar: "أنا أحب", en: "I love" },
+        ],
+        quiz: [
+          { q: "كيف تقول 'أنا سعيد'؟", opts: ["Xemgîn im","Westiyam","Kêfxweş im","Birçî me"], ans: 2 },
+          { q: "ماذا تعني 'Tî me'؟", opts: ["أنا جائع","أنا عطشان","أنا متعب","أنا حزين"], ans: 1 },
+          { q: "كيف تقول 'أنا أحب'؟", opts: ["Hez dikim","Birçî me","Westiyam","Tî me"], ans: 0 },
+        ],
+        practice: "Silav! Em ê hestên xwe bi Kurmancî bibêjin. Tu çawa yî îro? Baş î?",
+      },
+      {
+        id: "2-4", title: "Bajêr", subtitle: "City & Places", emoji: "🏙️",
+        words: [
+          { ku: "Bajêr", ar: "مدينة", en: "City" }, { ku: "Kolан", ar: "شارع", en: "Street" },
+          { ku: "Xane", ar: "منزل/بيت", en: "House" }, { ku: "Bazêr", ar: "سوق", en: "Market" },
+          { ku: "Dibistan", ar: "مدرسة", en: "School" }, { ku: "Nexweşxane", ar: "مستشفى", en: "Hospital" },
+          { ku: "Mizgeft", ar: "مسجد", en: "Mosque" }, { ku: "Rê", ar: "طريق", en: "Road" },
+        ],
+        quiz: [
+          { q: "كيف تقول 'مدرسة'؟", opts: ["Bazêr","Dibistan","Xane","Mizgeft"], ans: 1 },
+          { q: "ماذا تعني 'Xane'؟", opts: ["سوق","مستشفى","منزل","مسجد"], ans: 2 },
+          { q: "كيف تقول 'سوق'؟", opts: ["Rê","Bajêr","Bazêr","Kolan"], ans: 2 },
+        ],
+        practice: "Silav! Em ê navên cihên bajêr fêr bibin. Bajêra te ya herî mezin kîjan e?",
+      },
+      {
+        id: "2-5", title: "Lêker", subtitle: "Basic Verbs", emoji: "⚡",
+        words: [
+          { ku: "Ez dixwim", ar: "أنا آكل", en: "I eat" },
+          { ku: "Ez vexwim", ar: "أنا أشرب", en: "I drink" },
+          { ku: "Ez diçim", ar: "أنا أذهب", en: "I go" },
+          { ku: "Ez têm", ar: "أنا آتي", en: "I come" },
+          { ku: "Ez dixwazim", ar: "أنا أريد", en: "I want" },
+          { ku: "Ez zanime", ar: "أنا أعرف", en: "I know" },
+          { ku: "Ez dibêjim", ar: "أنا أقول", en: "I say" },
+          { ku: "Ez dibînim", ar: "أنا أرى", en: "I see" },
+        ],
+        quiz: [
+          { q: "كيف تقول 'أنا أذهب'؟", opts: ["Ez têm","Ez diçim","Ez dixwim","Ez zanime"], ans: 1 },
+          { q: "ماذا تعني 'Ez dixwazim'؟", opts: ["أنا أعرف","أنا أقول","أنا أريد","أنا أرى"], ans: 2 },
+          { q: "كيف تقول 'أنا آكل'؟", opts: ["Ez vexwim","Ez dixwim","Ez têm","Ez dibêjim"], ans: 1 },
+        ],
+        practice: "Silav! Lêkerên bingehîn ên Kurmancî fêr bibin. Kîjan lêkerê herî zêde bikartînî?",
+      },
+    ],
+  },
+  {
+    id: 2,
+    title: "Pêşkeftî",
+    subtitle: "Advanced · متقدم",
+    color: "#C8010C",
+    colorDim: "rgba(200,1,12,0.12)",
+    emoji: "🌳",
+    desc: "Rêziman, çand û edebiyat — النحو والثقافة والأدب",
+    lessons: [
+      {
+        id: "3-1", title: "Gotinên Pêşiyan", subtitle: "Kurdish Proverbs", emoji: "📜",
+        words: [
+          { ku: "Kurd di nav çiyan de azad e", ar: "الكردي حر في الجبال", en: "The Kurd is free in the mountains" },
+          { ku: "Ziman, jiyana neteweyê ye", ar: "اللغة هي حياة الأمة", en: "Language is the life of a nation" },
+          { ku: "Heval di roja zor de tê zanîn", ar: "يُعرف الصديق في وقت الشدة", en: "A friend is known in hard times" },
+          { ku: "Serê kesî naxe destê xwe", ar: "لا يضع رأسه في يد غيره", en: "Self-reliance above all" },
+          { ku: "Av ji çavkaniyê paqij e", ar: "الماء نظيف من المنبع", en: "Water is pure from the source" },
+        ],
+        quiz: [
+          { q: "ماذا تعني 'Ziman, jiyana neteweyê ye'؟", opts: ["الكردي حر","اللغة هي حياة الأمة","الماء نظيف","الصديق في الشدة"], ans: 1 },
+          { q: "ما معنى المثل 'Heval di roja zor de tê zanîn'؟", opts: ["اللغة تحيا","الصديق يُعرف في الشدة","الجبال آمن","الماء نظيف"], ans: 1 },
+          { q: "ما الكلمة الكردية لـ 'حر/آزاد'؟", opts: ["Ziman","Jiyan","Azad","Netew"], ans: 2 },
+        ],
+        practice: "Silav! Gotinên pêşiyan, darahêna çandî ya Kurdî ne. Kîjan gotinên pêşiyan di zimanê te de hene? Biguherîne bi Kurmancî!",
+      },
+      {
+        id: "3-2", title: "Rêziman", subtitle: "Grammar Basics", emoji: "📐",
+        words: [
+          { ku: "Ez (min)", ar: "أنا", en: "I (me)" },
+          { ku: "Tu (te)", ar: "أنت", en: "You" },
+          { ku: "Ew (wî/wê)", ar: "هو/هي", en: "He/She" },
+          { ku: "Em (me)", ar: "نحن", en: "We" },
+          { ku: "Hûn (we)", ar: "أنتم", en: "You (plural)" },
+          { ku: "Ew (wan)", ar: "هم", en: "They" },
+          { ku: "Nêr / Mê", ar: "مذكر / مؤنث", en: "Masculine / Feminine" },
+          { ku: "Niha / Borî", ar: "الحاضر / الماضي", en: "Present / Past" },
+        ],
+        quiz: [
+          { q: "كيف تقول 'نحن' بالكرمانجي؟", opts: ["Tu","Ez","Em","Ew"], ans: 2 },
+          { q: "ما ضمير 'هم' بالكرمانجي؟", opts: ["Em","Hûn","Ew","Tu"], ans: 2 },
+          { q: "ما معنى 'Mê'؟", opts: ["مذكر","جمع","مؤنث","فعل"], ans: 2 },
+        ],
+        practice: "Silav! Em ê rêzimana Kurmancî fêr bibin. Bi Kurmancî bêje: 'Ez xwendekar im' — tê wateya چي؟",
+      },
+      {
+        id: "3-3", title: "Dîrok a Kurdî", subtitle: "Historical Vocabulary", emoji: "⚔️",
+        words: [
+          { ku: "Serxwebûn", ar: "استقلال", en: "Independence" },
+          { ku: "Têkoşîn", ar: "نضال/كفاح", en: "Struggle" },
+          { ku: "Welat", ar: "وطن", en: "Homeland" },
+          { ku: "Netew", ar: "أمة/شعب", en: "Nation" },
+          { ku: "Serhildan", ar: "انتفاضة", en: "Uprising" },
+          { ku: "Azadî", ar: "حرية", en: "Freedom" },
+          { ku: "Peyman", ar: "معاهدة", en: "Treaty" },
+          { ku: "Jenosîd", ar: "إبادة جماعية", en: "Genocide" },
+        ],
+        quiz: [
+          { q: "كيف تقول 'حرية' بالكرمانجي؟", opts: ["Welat","Netew","Azadî","Peyman"], ans: 2 },
+          { q: "ماذا تعني 'Serhildan'؟", opts: ["وطن","استقلال","إبادة","انتفاضة"], ans: 3 },
+          { q: "كيف تقول 'وطن'؟", opts: ["Peyman","Welat","Têkoşîn","Netew"], ans: 1 },
+        ],
+        practice: "Silav! Dîroka Kurdî ya dewlemend a têkoşînê heye. Em ê peyivên dîrokî fêr bibin — 'Azadî' bi Erebî çi ye?",
+      },
+      {
+        id: "3-4", title: "Çand û Huner", subtitle: "Culture & Arts", emoji: "🎭",
+        words: [
+          { ku: "Dengbêj", ar: "المغني الشعبي الكردي", en: "Kurdish folk singer/storyteller" },
+          { ku: "Newroz", ar: "رأس السنة الكردية", en: "Kurdish New Year (March 21)" },
+          { ku: "Helbestvan", ar: "شاعر", en: "Poet" },
+          { ku: "Stran", ar: "أغنية", en: "Song" },
+          { ku: "Govend", ar: "رقصة شعبية كردية", en: "Kurdish folk dance" },
+          { ku: "Bilûr", ar: "مزمار/ناي", en: "Kurdish flute" },
+          { ku: "Kilam", ar: "قصيدة/نشيد", en: "Epic poem/chant" },
+          { ku: "Çîrok", ar: "قصة", en: "Story" },
+        ],
+        quiz: [
+          { q: "ما هو 'Dengbêj'؟", opts: ["شاعر","المغني الشعبي الكردي","رقصة","نشيد"], ans: 1 },
+          { q: "كيف تقول 'رقصة شعبية'؟", opts: ["Stran","Bilûr","Govend","Kilam"], ans: 2 },
+          { q: "متى يُحتفل بـ Newroz؟", opts: ["٢١ يناير","٢١ مارس","٢١ يونيو","٢١ أكتوبر"], ans: 1 },
+        ],
+        practice: "Silav! Çanda Kurdî dewlemend û kevnar e. Tu li ser Newrozê an Dengbêjan tiştekî dizanî?",
+      },
+      {
+        id: "3-5", title: "Edebiyat", subtitle: "Literature & Poetry", emoji: "📚",
+        words: [
+          { ku: "Mem û Zîn", ar: "ملحمة كردية للشاعر أحمدي خاني", en: "Kurdish epic poem by Ahmadî Xanî" },
+          { ku: "Ahmadî Xanî", ar: "شاعر كردي ١٦٥٠-١٧٠٧", en: "Kurdish poet 1650–1707" },
+          { ku: "Cegerxwîn", ar: "شاعر الثورة الكردي ١٩٠٣-١٩٨٤", en: "Kurdish revolutionary poet 1903–1984" },
+          { ku: "Helbest", ar: "شعر/قصيدة", en: "Poem/Poetry" },
+          { ku: "Edebiyat", ar: "أدب", en: "Literature" },
+          { ku: "Nivîskar", ar: "كاتب", en: "Writer" },
+          { ku: "Roman", ar: "رواية", en: "Novel" },
+          { ku: "Çîroka gelêrî", ar: "قصة شعبية", en: "Folk tale" },
+        ],
+        quiz: [
+          { q: "من كتب 'Mem û Zîn'؟", opts: ["Cegerxwîn","Mistefa Barzanî","Ahmadî Xanî","Qazî Mihemed"], ans: 2 },
+          { q: "ماذا تعني 'Helbest'؟", opts: ["رواية","قصة","شعر/قصيدة","أدب"], ans: 2 },
+          { q: "من هو 'Cegerxwîn'؟", opts: ["شاعر الثورة الكردي","ملك كردي","مؤرخ","فيلسوف"], ans: 0 },
+        ],
+        practice: "Silav! Edebiyata Kurdî zengîn e. Ahmadî Xanî di 1650 de ji dayik bûye. 'Mem û Zîn' çîroka evînê ye — tu dixwazî pêrê fêr bibî?",
+      },
+    ],
+  },
 ];
 
+// ─── SHARED HELPERS ────────────────────────────────────────────────────────────
 function KurdishSun({ size = 68, spin = true }) {
   return (
-    <svg
-      width={size} height={size} viewBox="0 0 68 68"
-      style={spin ? { animation: "spin 30s linear infinite" } : {}}
-    >
+    <svg width={size} height={size} viewBox="0 0 68 68"
+      style={spin ? { animation: "spin 30s linear infinite" } : {}}>
       <circle cx="34" cy="34" r="13" fill="#D4930E" />
       <circle cx="34" cy="34" r="17" fill="none" stroke="#D4930E" strokeWidth="1.1" />
       <g stroke="#D4930E" strokeWidth="1.1" strokeLinecap="round">
@@ -40,158 +324,899 @@ function KurdishSun({ size = 68, spin = true }) {
         <line x1="58.1" y1="9.9" x2="51" y2="17" /><line x1="17" y1="51" x2="9.9" y2="58.1" />
         <line x1="19" y1="4.5" x2="21.5" y2="13" /><line x1="46.5" y1="55" x2="49" y2="63.5" />
         <line x1="4.5" y1="49" x2="13" y2="46.5" /><line x1="55" y1="21.5" x2="63.5" y2="19" />
-        <line x1="49" y1="4.5" x2="46.5" y2="13" /><line x1="21.5" y1="55" x2="19" y2="63.5" />
-        <line x1="63.5" y1="49" x2="55" y2="46.5" /><line x1="13" y1="21.5" x2="4.5" y2="19" />
         <line x1="6" y1="28" x2="14" y2="30.5" /><line x1="54" y1="37.5" x2="62" y2="40" />
-        <line x1="28" y1="62" x2="30.5" y2="54" /><line x1="37.5" y1="14" x2="40" y2="6" />
         <line x1="6" y1="40" x2="14" y2="37.5" /><line x1="54" y1="30.5" x2="62" y2="28" />
       </g>
     </svg>
   );
 }
 
-export default function CihanaChat() {
-  const [messages, setMessages] = useState([]);
+async function callAI(system, messages) {
+  // Uses /api/chat backend — API key is hidden on server
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 600, system, messages }),
+  });
+  if (res.status === 429) throw new Error("rate_limit");
+  const data = await res.json();
+  return data.content?.[0]?.text || "Bibore, xeletiyek çêbû.";
+}
+
+function ChatBubble({ m }) {
+  const isUser = m.role === "user";
+  return (
+    <div className="msg-in" style={{ display: "flex", gap: 8, maxWidth: "95%", alignSelf: isUser ? "flex-end" : "flex-start", flexDirection: isUser ? "row-reverse" : "row" }}>
+      <div style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, marginTop: 2, border: "0.5px solid rgba(212,147,14,0.25)", background: isUser ? "rgba(42,86,24,0.25)" : "rgba(212,147,14,0.1)", color: isUser ? "#7DBF6E" : "#D4930E" }}>
+        {isUser ? "T" : "☀"}
+      </div>
+      <div style={{ background: isUser ? "rgba(42,86,24,0.18)" : "#1E1608", border: isUser ? "0.5px solid rgba(42,86,24,0.3)" : "0.5px solid rgba(212,147,14,0.18)", borderRadius: isUser ? "14px 4px 14px 14px" : "4px 14px 14px 14px", padding: "9px 12px", fontSize: 13, lineHeight: 1.65, color: "#F0DDB0", whiteSpace: "pre-wrap" }}>
+        {m.content}
+      </div>
+    </div>
+  );
+}
+
+function TypingDots() {
+  return (
+    <div style={{ display: "flex", gap: 8, alignSelf: "flex-start" }}>
+      <div style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(212,147,14,0.1)", border: "0.5px solid rgba(212,147,14,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#D4930E" }}>☀</div>
+      <div style={{ background: "#1E1608", border: "0.5px solid rgba(212,147,14,0.18)", borderRadius: "4px 14px 14px 14px", padding: "12px 14px", display: "flex", gap: 4, alignItems: "center" }}>
+        {[0, 0.2, 0.4].map((d, i) => <span key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: "#D4930E", display: "inline-block", animation: `blink 1.2s ${d}s infinite` }} />)}
+      </div>
+    </div>
+  );
+}
+
+function InputBar({ value, onChange, onSend, placeholder, extra }) {
+  return (
+    <div style={{ flexShrink: 0, padding: "8px 10px 6px", background: "#161008", borderTop: "0.5px solid rgba(212,147,14,0.18)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, background: "#261D0A", border: "0.5px solid rgba(212,147,14,0.22)", borderRadius: 10, padding: "6px 8px" }}>
+        <input value={value} onChange={e => onChange(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
+          placeholder={placeholder}
+          style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#F0DDB0", fontFamily: "inherit", fontSize: 13, caretColor: "#D4930E" }} />
+        <button onClick={onSend} style={{ width: 30, height: 30, background: "#D4930E", border: "none", borderRadius: 7, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0D0900" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
+          </svg>
+        </button>
+      </div>
+      {extra}
+    </div>
+  );
+}
+
+// ─── CHAT TAB ──────────────────────────────────────────────────────────────────
+const FREE_LIMIT = 15;
+const PLANS = [
+  { id: "trial", label: "Testa", price: "€1", period: "/meh yekem", msgs: 15, color: "#4CAF50" },
+  { id: "standard", label: "Standard", price: "€5", period: "/meh", msgs: 30, color: "#D4930E" },
+  { id: "pro", label: "Pro ☀", price: "€9", period: "/meh", msgs: 999, color: "#C8010C" },
+];
+
+function UpgradeModal({ used, onClose }) {
+  const G = "#D4930E", DIM = "#B8A07A", CREAM = "#F0DDB0";
+  return (
+    <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.88)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: "#161008", border: "1px solid rgba(212,147,14,0.4)", borderRadius: 14, padding: "24px 20px", width: "100%", maxWidth: 320, position: "relative" }}>
+        <button onClick={onClose} style={{ position: "absolute", top: 10, right: 12, background: "transparent", border: "none", color: DIM, fontSize: 18, cursor: "pointer" }}>✕</button>
+        <div style={{ textAlign: "center", marginBottom: 18 }}>
+          <div style={{ fontSize: 30, marginBottom: 8 }}>☀</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: G, marginBottom: 6 }}>Sînorê Rojane Temam Bû</div>
+          <div style={{ fontSize: 11, color: DIM, lineHeight: 1.65 }}>
+            {used}/{FREE_LIMIT} peyam bikar anîne îro.<br/>
+            <span style={{ color: CREAM }}>Ji bo berdewamiyê abone bibe.</span>
+          </div>
+        </div>
+        <div style={{ height: 3, background: "rgba(212,147,14,0.1)", borderRadius: 2, marginBottom: 18 }}>
+          <div style={{ height: "100%", width: "100%", background: "#C8010C", borderRadius: 2 }} />
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 9, marginBottom: 16 }}>
+          {PLANS.map(p => (
+            <div key={p.id} style={{ background: p.id === "standard" ? "rgba(212,147,14,0.1)" : "#1E1608", border: `0.5px solid ${p.id === "standard" ? p.color : "rgba(212,147,14,0.18)"}`, borderRadius: 10, padding: "11px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: p.color }}>{p.label}</div>
+                <div style={{ fontSize: 10, color: DIM }}>{p.msgs === 999 ? "Bêsînor · Unlimited" : `${p.msgs} peyam/roj`}</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: CREAM }}>{p.price}</div>
+                <div style={{ fontSize: 9, color: DIM }}>{p.period}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button style={{ width: "100%", background: G, border: "none", color: "#0D0900", padding: "11px", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          Abone Bibe → Subscribe
+        </button>
+        <div style={{ textAlign: "center", marginTop: 8, fontSize: 10, color: DIM, opacity: 0.6 }}>
+          Testa: €1 ji bo meh yekem · dûv re €5/meh
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChatTab({ conversations, activeId, onNewChat, onSelectChat, onUpdateChat, msgCount, onMsgSent }) {
+  const active = conversations.find(c => c.id === activeId) || { messages: [] };
+  const messages = active.messages;
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [started, setStarted] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const bottomRef = useRef(null);
-  const inputRef = useRef(null);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  const SUGG = ["Dîroka Kurdistanê çi ye?", "Kî bû Selahedîn Eyûbî?", "Êzidî kî ne?", "Peymana Sêvrê çi bû?"];
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
 
   async function send(text) {
     if (!text.trim() || loading) return;
-    setStarted(true);
-    const userMsg = { role: "user", content: text };
-    const newHistory = [...messages, userMsg];
-    setMessages(newHistory);
-    setInput("");
-    setLoading(true);
+    if (msgCount >= FREE_LIMIT) { setShowUpgrade(true); return; }
+    const hist = [...messages, { role: "user", content: text }];
+    const title = active.title === "Muhabet" ? text.slice(0, 32) : active.title;
+    onUpdateChat(activeId, hist, title);
+    setInput(""); setLoading(true);
+    onMsgSent();
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 600,
-          system: SYS,
-          messages: newHistory,
-        }),
-      });
-      const data = await res.json();
-      const reply = data.content?.[0]?.text || "Bibore, pirsgirêkek çêbû.";
-      setMessages([...newHistory, { role: "assistant", content: reply }]);
-    } catch (e) {
-      setMessages([...newHistory, { role: "assistant", content: "Bibore, xeletiyek çêbû. Ji nû ve biceribîne." }]);
+      const reply = await callAI(SYS_CHAT, hist);
+      onUpdateChat(activeId, [...hist, { role: "assistant", content: reply }], title);
+    } catch {
+      onUpdateChat(activeId, [...hist, { role: "assistant", content: "Bibore, xeletiyek çêbû." }], title);
     }
     setLoading(false);
-    setTimeout(() => inputRef.current?.focus(), 100);
+  }
+
+  const G = "#D4930E", DIM = "#B8A07A", CREAM = "#F0DDB0";
+  const remaining = Math.max(0, FREE_LIMIT - msgCount);
+  const pct = Math.min((msgCount / FREE_LIMIT) * 100, 100);
+
+  return (
+    <div style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative" }}>
+      {showUpgrade && <UpgradeModal used={msgCount} onClose={() => setShowUpgrade(false)} />}
+
+      {/* SIDEBAR */}
+      <div style={{
+        width: sidebarOpen ? 200 : 0,
+        flexShrink: 0,
+        overflow: "hidden",
+        transition: "width 0.25s ease",
+        background: "#0D0900",
+        borderRight: sidebarOpen ? "0.5px solid rgba(212,147,14,0.18)" : "none",
+        display: "flex",
+        flexDirection: "column",
+      }}>
+        <div style={{ padding: "10px 10px 6px", flexShrink: 0 }}>
+          <button onClick={onNewChat}
+            style={{ width: "100%", background: "rgba(212,147,14,0.1)", border: "0.5px solid rgba(212,147,14,0.3)", color: G, padding: "8px", borderRadius: 7, fontSize: 11, cursor: "pointer", fontWeight: 600, letterSpacing: "0.04em" }}>
+            + Muhabet Nû
+          </button>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: "4px 6px" }}>
+          <div style={{ fontSize: 9, color: DIM, letterSpacing: "0.1em", textTransform: "uppercase", padding: "6px 6px 4px", opacity: 0.6 }}>Dîroka Muhabet</div>
+          {conversations.map(c => (
+            <div key={c.id} onClick={() => { onSelectChat(c.id); setSidebarOpen(false); }}
+              style={{
+                padding: "8px 8px",
+                borderRadius: 6,
+                cursor: "pointer",
+                background: c.id === activeId ? "rgba(212,147,14,0.12)" : "transparent",
+                border: c.id === activeId ? "0.5px solid rgba(212,147,14,0.25)" : "0.5px solid transparent",
+                marginBottom: 3,
+                transition: "all 0.15s",
+              }}>
+              <div style={{ fontSize: 11, color: c.id === activeId ? G : CREAM, fontWeight: c.id === activeId ? 600 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {c.title}
+              </div>
+              <div style={{ fontSize: 9, color: DIM, marginTop: 2, opacity: 0.6 }}>
+                {c.messages.length > 0 ? `${Math.ceil(c.messages.length / 2)} pirs` : "Vala"}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* MAIN CHAT */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {/* Sub-header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", borderBottom: "0.5px solid rgba(212,147,14,0.1)", flexShrink: 0, background: "#0D0900" }}>
+          <button onClick={() => setSidebarOpen(o => !o)}
+            style={{ background: sidebarOpen ? "rgba(212,147,14,0.1)" : "transparent", border: "0.5px solid rgba(212,147,14,0.2)", color: G, width: 26, height: 26, borderRadius: 5, cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            ☰
+          </button>
+          <div style={{ fontSize: 11, color: DIM, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+            {active.title}
+          </div>
+          <button onClick={onNewChat}
+            style={{ background: "transparent", border: "0.5px solid rgba(212,147,14,0.2)", color: DIM, padding: "3px 8px", borderRadius: 4, fontSize: 10, cursor: "pointer", flexShrink: 0 }}>
+            + Nû
+          </button>
+        </div>
+
+        {/* Messages */}
+        <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+          {messages.length === 0 ? (
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px", textAlign: "center" }}>
+              <KurdishSun size={60} spin />
+              <div style={{ fontSize: 20, fontWeight: 700, color: G, letterSpacing: "0.04em", textTransform: "uppercase", margin: "12px 0 6px" }}>Xweş hatî, heval</div>
+              <p style={{ fontStyle: "italic", fontSize: 11, color: DIM, lineHeight: 1.7, maxWidth: 260, marginBottom: 16 }}>
+                Ez Cihana me — alikarê te yê dîroka Kurdî.
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
+                {SUGG.map(s => <button key={s} className="sgb" onClick={() => send(s)} style={{ background: "transparent", border: "1px solid rgba(212,147,14,0.3)", color: CREAM, padding: "5px 10px", fontSize: 10, borderRadius: 999, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", transition: "all 0.2s" }}>{s}</button>)}
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", padding: "12px 10px", gap: 10 }}>
+              {messages.map((m, i) => <ChatBubble key={i} m={m} />)}
+              {loading && <TypingDots />}
+              <div ref={bottomRef} />
+            </div>
+          )}
+        </div>
+
+        <div style={{ flexShrink: 0, padding: "4px 10px 0", background: "#161008" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+            <div style={{ fontSize: 9, color: remaining <= 3 ? "#C8010C" : DIM, opacity: 0.7 }}>
+              {remaining > 0 ? `${remaining} peyam mane · ${remaining} messages left` : "Sînor temam bû · Limit reached"}
+            </div>
+            <button onClick={() => setShowUpgrade(true)} style={{ background: "transparent", border: `0.5px solid ${remaining <= 3 ? "#C8010C" : "rgba(212,147,14,0.2)"}`, color: remaining <= 3 ? "#C8010C" : DIM, padding: "2px 8px", borderRadius: 3, fontSize: 9, cursor: "pointer" }}>
+              Upgrade ↑
+            </button>
+          </div>
+          <div style={{ height: 2, background: "rgba(212,147,14,0.1)", borderRadius: 1, marginBottom: 6 }}>
+            <div style={{ height: "100%", width: `${pct}%`, background: pct >= 100 ? "#C8010C" : pct >= 70 ? "#D4930E" : "#4CAF50", borderRadius: 1, transition: "width 0.4s" }} />
+          </div>
+        </div>
+        <InputBar value={input} onChange={setInput} onSend={() => send(input)}
+          placeholder={remaining > 0 ? "Pirsên xwe binivîse... (Kurdish, Arabic, English)" : "Abone bibe · Subscribe to continue..."}
+          extra={<div style={{ textAlign: "center", fontSize: 10, color: DIM, opacity: 0.4, marginTop: 4 }}>Cihana · AI ya Dîroka Kurdî · Beta</div>} />
+      </div>
+    </div>
+  );
+}
+
+// ─── CERTIFICATE ───────────────────────────────────────────────────────────────
+function Certificate({ name, level, onBack }) {
+  const date = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const medals = ["🥉", "🥈", "🥇"];
+  const levelNames = ["Destpêk · Beginner", "Navîn · Intermediate", "Pêşkeftî · Advanced"];
+  return (
+    <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "14px 12px" }}>
+      <div style={{ width: "100%", maxWidth: 400, background: "#161008", border: `1.5px solid ${LEVELS[level].color}`, borderRadius: 12, padding: "24px 20px", textAlign: "center", position: "relative" }}>
+        {[["top","left"],["top","right"],["bottom","left"],["bottom","right"]].map(([v,h],i) => (
+          <div key={i} style={{ position:"absolute", width:14, height:14, border:`1.5px solid ${LEVELS[level].color}`, [v]:7, [h]:7 }} />
+        ))}
+        <div style={{ height: 3, background: "linear-gradient(90deg,#C8010C 33.3%,#F0DDB0 33.3% 66.6%,#2A5618 66.6%)", marginBottom: 18, borderRadius: 2 }} />
+        <div style={{ fontSize: 36, marginBottom: 8 }}>{medals[level]}</div>
+        <div style={{ fontSize: 9, letterSpacing: "0.2em", color: "#B8A07A", textTransform: "uppercase", marginBottom: 4 }}>Şahadetname · Certificate</div>
+        <div style={{ fontSize: 10, color: "#B8A07A", marginBottom: 12 }}>Ev şahadetname tê dayîn ji</div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: LEVELS[level].color, marginBottom: 4, fontStyle: "italic" }}>{name}</div>
+        <div style={{ fontSize: 11, color: "#F0DDB0", lineHeight: 1.7, marginBottom: 16 }}>
+          {levelNames[level]} — Bi Serketî Qedandiye<br />
+          <span style={{ color: "#B8A07A", fontSize: 10 }}>Successfully Completed</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-around", borderTop: "0.5px solid rgba(212,147,14,0.2)", paddingTop: 12, marginBottom: 12 }}>
+          {[["5","Ders"],["30+","Peyv"],["100%","Encam"]].map(([n,l],i) => (
+            <div key={i} style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: LEVELS[level].color }}>{n}</div>
+              <div style={{ fontSize: 9, color: "#B8A07A" }}>{l}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 9, color: "#B8A07A", opacity: 0.5 }}>Cihana · {date}</div>
+      </div>
+      <button onClick={onBack} style={{ marginTop: 14, background: "transparent", border: "1px solid rgba(212,147,14,0.3)", color: "#B8A07A", padding: "7px 18px", borderRadius: 6, cursor: "pointer", fontSize: 11 }}>
+        ← Vegerê / Back
+      </button>
+    </div>
+  );
+}
+
+// ─── LEARN TAB ─────────────────────────────────────────────────────────────────
+function LearnTab() {
+  // navigation state
+  const [view, setView] = useState("levels"); // levels | lessons | vocab | quiz | practice | done | cert | certName
+  const [activeLevelId, setActiveLevelId] = useState(0);
+  const [activeLessonIdx, setActiveLessonIdx] = useState(0);
+  // progress: { levelId: [lessonId, ...] }
+  const [completed, setCompleted] = useState({});
+  // quiz state
+  const [qIdx, setQIdx] = useState(0);
+  const [score, setScore] = useState(0);
+  const [sel, setSel] = useState(null);
+  // practice chat
+  const [chatMsgs, setChatMsgs] = useState([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  // cert
+  const [nameInput, setNameInput] = useState("");
+  const [certLevel, setCertLevel] = useState(0);
+  const bottomRef = useRef(null);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMsgs]);
+
+  const level = LEVELS[activeLevelId];
+  const lesson = level.lessons[activeLessonIdx];
+  const levelDone = (lvlId) => {
+    const c = completed[lvlId] || [];
+    return c.length === LEVELS[lvlId].lessons.length;
+  };
+  const lessonDone = (lvlId, lessonId) => (completed[lvlId] || []).includes(lessonId);
+
+  function openLevel(lvlId) {
+    // locked if previous level not done
+    if (lvlId > 0 && !levelDone(lvlId - 1)) return;
+    setActiveLevelId(lvlId);
+    setView("lessons");
+  }
+
+  function openLesson(lessonIdx) {
+    const lessons = LEVELS[activeLevelId].lessons;
+    // locked if previous lesson not done
+    if (lessonIdx > 0 && !lessonDone(activeLevelId, lessons[lessonIdx - 1].id)) return;
+    setActiveLessonIdx(lessonIdx);
+    setView("vocab");
+    setQIdx(0); setScore(0); setSel(null);
+    setChatMsgs([{ role: "assistant", content: level.lessons[lessonIdx].practice }]);
+  }
+
+  function startQuiz() { setView("quiz"); setQIdx(0); setScore(0); setSel(null); }
+
+  function answer(optIdx) {
+    if (sel !== null) return;
+    setSel(optIdx);
+    const ok = optIdx === lesson.quiz[qIdx].ans;
+    if (ok) setScore(s => s + 1);
+    setTimeout(() => {
+      if (qIdx + 1 < lesson.quiz.length) { setQIdx(q => q + 1); setSel(null); }
+      else {
+        const lvlId = activeLevelId;
+        const lessonId = lesson.id;
+        const prevDone = completed[lvlId] || [];
+        const newDone = [...new Set([...prevDone, lessonId])];
+        const newCompleted = { ...completed, [lvlId]: newDone };
+        setCompleted(newCompleted);
+        // check if level is complete
+        if (newDone.length === LEVELS[lvlId].lessons.length) {
+          setCertLevel(lvlId);
+          setView("done");
+        } else {
+          setView("done");
+        }
+      }
+    }, 900);
+  }
+
+  async function sendChat(text) {
+    if (!text.trim() || chatLoading) return;
+    const hist = [...chatMsgs, { role: "user", content: text }];
+    setChatMsgs(hist); setChatInput(""); setChatLoading(true);
+    try {
+      const sys = SYS_LEARN(level.title, lesson.title, lesson.words);
+      const reply = await callAI(sys, hist);
+      setChatMsgs([...hist, { role: "assistant", content: reply }]);
+    } catch { setChatMsgs([...hist, { role: "assistant", content: "Bibore, xeletiyek çêbû." }]); }
+    setChatLoading(false);
+  }
+
+  const G = "#D4930E", DIM = "#B8A07A", CREAM = "#F0DDB0";
+  const lc = level.color;
+
+  // ── LEVELS VIEW
+  if (view === "levels") return (
+    <div style={{ flex: 1, overflowY: "auto", padding: "14px 12px" }}>
+      <div style={{ textAlign: "center", marginBottom: 20 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: G, letterSpacing: "0.1em" }}>📚 FÊRBÛN</div>
+        <div style={{ fontSize: 11, color: DIM, marginTop: 2 }}>Fêrî Kurmancî bibe · Learn Kurmanji</div>
+      </div>
+      {LEVELS.map((lv, i) => {
+        const done = levelDone(i);
+        const locked = i > 0 && !levelDone(i - 1);
+        const c = completed[i] || [];
+        const pct = Math.round((c.length / lv.lessons.length) * 100);
+        return (
+          <div key={i} onClick={() => openLevel(i)}
+            style={{ background: done ? `${lv.colorDim}` : "#1E1608", border: `0.5px solid ${done ? lv.color : locked ? "rgba(212,147,14,0.06)" : "rgba(212,147,14,0.2)"}`, borderRadius: 12, padding: "16px 14px", marginBottom: 12, cursor: locked ? "not-allowed" : "pointer", opacity: locked ? 0.35 : 1, transition: "all 0.2s" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ fontSize: 28 }}>{locked ? "🔒" : lv.emoji}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: done ? lv.color : CREAM }}>{lv.title}</span>
+                  {done && <span style={{ fontSize: 10, color: lv.color, border: `0.5px solid ${lv.color}`, padding: "1px 7px", borderRadius: 20 }}>✓ Qediya</span>}
+                </div>
+                <div style={{ fontSize: 11, color: DIM }}>{lv.subtitle}</div>
+                <div style={{ fontSize: 10, color: DIM, marginTop: 3, fontStyle: "italic" }}>{lv.desc}</div>
+              </div>
+              {!locked && <div style={{ fontSize: 11, fontWeight: 700, color: lv.color }}>{pct}%</div>}
+            </div>
+            {!locked && c.length > 0 && (
+              <div style={{ marginTop: 10, height: 3, background: "rgba(212,147,14,0.1)", borderRadius: 2 }}>
+                <div style={{ height: "100%", width: `${pct}%`, background: lv.color, borderRadius: 2, transition: "width 0.4s" }} />
+              </div>
+            )}
+            {!locked && (
+              <div style={{ marginTop: 10, fontSize: 10, color: DIM }}>{lv.lessons.length} dersên · lessons</div>
+            )}
+          </div>
+        );
+      })}
+      {/* Show cert buttons for completed levels */}
+      {LEVELS.map((lv, i) => levelDone(i) && (
+        <button key={i} onClick={() => { setCertLevel(i); setView("certName"); }}
+          style={{ width: "100%", marginBottom: 6, background: lv.colorDim, border: `0.5px solid ${lv.color}`, color: lv.color, padding: "9px", borderRadius: 8, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+          🏆 Şahadetnameyê Bibîne — {lv.title}
+        </button>
+      ))}
+    </div>
+  );
+
+  // ── LESSONS LIST
+  if (view === "lessons") return (
+    <div style={{ flex: 1, overflowY: "auto", padding: "12px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+        <button onClick={() => setView("levels")} style={{ background: "transparent", border: "none", color: DIM, cursor: "pointer", fontSize: 20, padding: 0 }}>←</button>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: lc }}>{level.emoji} {level.title}</div>
+          <div style={{ fontSize: 11, color: DIM }}>{level.subtitle}</div>
+        </div>
+      </div>
+      {level.lessons.map((ls, i) => {
+        const done = lessonDone(activeLevelId, ls.id);
+        const locked = i > 0 && !lessonDone(activeLevelId, level.lessons[i - 1].id);
+        return (
+          <div key={i} onClick={() => openLesson(i)}
+            style={{ display: "flex", alignItems: "center", gap: 12, background: done ? "rgba(42,86,24,0.15)" : "#1E1608", border: `0.5px solid ${done ? "rgba(42,86,24,0.4)" : locked ? "rgba(212,147,14,0.06)" : "rgba(212,147,14,0.18)"}`, borderRadius: 10, padding: "13px 14px", marginBottom: 9, cursor: locked ? "not-allowed" : "pointer", opacity: locked ? 0.35 : 1, transition: "all 0.2s" }}>
+            <div style={{ fontSize: 20 }}>{done ? "✅" : locked ? "🔒" : ls.emoji}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: done ? "#7DBF6E" : CREAM }}>{ls.title}</div>
+              <div style={{ fontSize: 11, color: DIM }}>{ls.subtitle} · {ls.words.length} peyv</div>
+            </div>
+            {!locked && !done && <div style={{ fontSize: 10, color: lc, border: `0.5px solid ${lc}`, padding: "3px 9px", borderRadius: 20, opacity: 0.8 }}>→</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  // ── VOCAB
+  if (view === "vocab") return (
+    <div style={{ flex: 1, overflowY: "auto", padding: "12px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+        <button onClick={() => setView("lessons")} style={{ background: "transparent", border: "none", color: DIM, cursor: "pointer", fontSize: 20, padding: 0 }}>←</button>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: lc }}>{lesson.emoji} {lesson.title}</div>
+          <div style={{ fontSize: 10, color: DIM }}>{lesson.subtitle} · {level.title}</div>
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+        {lesson.words.map((w, i) => (
+          <div key={i} style={{ background: "#1E1608", border: "0.5px solid rgba(212,147,14,0.18)", borderRadius: 10, padding: "11px", textAlign: "center" }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: lc, marginBottom: 3 }}>{w.ku}</div>
+            <div style={{ fontSize: 12, color: CREAM }}>{w.ar}</div>
+            {w.en && <div style={{ fontSize: 10, color: DIM }}>{w.en}</div>}
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={() => setView("practice")} style={{ flex: 1, background: "transparent", border: `0.5px solid ${lc}`, color: lc, padding: "10px", borderRadius: 8, fontSize: 12, cursor: "pointer" }}>
+          💬 AI Pratîk
+        </button>
+        <button onClick={startQuiz} style={{ flex: 1, background: lc, border: "none", color: "#0D0900", padding: "10px", borderRadius: 8, fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
+          Quiz →
+        </button>
+      </div>
+    </div>
+  );
+
+  // ── QUIZ
+  if (view === "quiz") {
+    const q = lesson.quiz[qIdx];
+    return (
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "14px 12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+          <button onClick={() => setView("vocab")} style={{ background: "transparent", border: "none", color: DIM, cursor: "pointer", fontSize: 20, padding: 0 }}>←</button>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, color: DIM, marginBottom: 4 }}>Pirsên {qIdx + 1}/{lesson.quiz.length} · {lesson.title}</div>
+            <div style={{ height: 3, background: "rgba(212,147,14,0.15)", borderRadius: 2 }}>
+              <div style={{ height: "100%", width: `${(qIdx / lesson.quiz.length) * 100}%`, background: lc, borderRadius: 2, transition: "width 0.3s" }} />
+            </div>
+          </div>
+        </div>
+        <div style={{ background: "#1E1608", border: "0.5px solid rgba(212,147,14,0.2)", borderRadius: 12, padding: "18px 14px", marginBottom: 16, textAlign: "center" }}>
+          <div style={{ fontSize: 13, color: CREAM, lineHeight: 1.65 }}>{q.q}</div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+          {q.opts.map((opt, i) => {
+            const isCorrect = i === q.ans, isSel = i === sel;
+            let bg = "#1E1608", border = "0.5px solid rgba(212,147,14,0.18)", color = CREAM;
+            if (sel !== null) {
+              if (isCorrect) { bg = "rgba(42,86,24,0.3)"; border = "0.5px solid #4CAF50"; color = "#7DBF6E"; }
+              else if (isSel) { bg = "rgba(139,26,26,0.3)"; border = "0.5px solid #C8010C"; color = "#FF8080"; }
+            }
+            return (
+              <button key={i} onClick={() => answer(i)}
+                style={{ background: bg, border, borderRadius: 10, padding: "11px 14px", color, fontSize: 13, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10, transition: "all 0.2s" }}>
+                <span style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(212,147,14,0.1)", border: "0.5px solid rgba(212,147,14,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, flexShrink: 0 }}>
+                  {["A","B","C","D"][i]}
+                </span>
+                {opt}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // ── PRACTICE CHAT
+  if (view === "practice") return (
+    <>
+      <div style={{ background: "#161008", padding: "10px 14px", borderBottom: "0.5px solid rgba(212,147,14,0.18)", flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
+        <button onClick={() => setView("vocab")} style={{ background: "transparent", border: "none", color: DIM, cursor: "pointer", fontSize: 20, padding: 0 }}>←</button>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: lc }}>💬 AI Pratîk · {lesson.title}</div>
+          <div style={{ fontSize: 10, color: DIM }}>{level.title} · Bi Cihana re axivê</div>
+        </div>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 10px", display: "flex", flexDirection: "column", gap: 10 }}>
+        {chatMsgs.map((m, i) => <ChatBubble key={i} m={m} />)}
+        {chatLoading && <TypingDots />}
+        <div ref={bottomRef} />
+      </div>
+      <InputBar value={chatInput} onChange={setChatInput} onSend={() => sendChat(chatInput)}
+        placeholder="Bi Kurmancî an Erebî binivîse..."
+        extra={<button onClick={startQuiz} style={{ width: "100%", marginTop: 7, background: "transparent", border: "0.5px solid rgba(212,147,14,0.2)", color: DIM, padding: "7px", borderRadius: 8, fontSize: 11, cursor: "pointer" }}>Quiz'ê bide → Take Quiz</button>} />
+    </>
+  );
+
+  // ── DONE
+  if (view === "done") {
+    const lvlNowDone = levelDone(certLevel);
+    return (
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
+        <div style={{ fontSize: 44, marginBottom: 14 }}>{lvlNowDone ? "🏆" : "🎉"}</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: lc, marginBottom: 6 }}>Pîroz be, heval!</div>
+        <div style={{ fontSize: 13, color: DIM, marginBottom: 4 }}>
+          Dersa <strong style={{ color: CREAM }}>{lesson.title}</strong> bi serketî qedandiye
+        </div>
+        <div style={{ fontSize: 12, color: "#7DBF6E", marginBottom: 22 }}>Encam: {score}/{lesson.quiz.length} ✓</div>
+        {lvlNowDone ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 260 }}>
+            <button onClick={() => setView("certName")} style={{ background: lc, border: "none", color: "#0D0900", padding: "11px 24px", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+              🏆 Şahadetnameyê Bistîne
+            </button>
+            <button onClick={() => setView("levels")} style={{ background: "transparent", border: "0.5px solid rgba(212,147,14,0.3)", color: DIM, padding: "10px", borderRadius: 8, fontSize: 12, cursor: "pointer" }}>
+              Asta Bê → Next Level
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setView("lessons")} style={{ background: lc, border: "none", color: "#0D0900", padding: "10px 28px", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+            Ders Bê → Next Lesson
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // ── CERT NAME INPUT
+  if (view === "certName") return (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
+      <div style={{ fontSize: 40, marginBottom: 14 }}>🏆</div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: LEVELS[certLevel].color, marginBottom: 6 }}>
+        Asta {LEVELS[certLevel].title} qedandiye!
+      </div>
+      <div style={{ fontSize: 13, color: DIM, marginBottom: 20 }}>Navê xwe binivîse û şahadetnameyê bistîne</div>
+      <div style={{ display: "flex", gap: 8, width: "100%", maxWidth: 300 }}>
+        <input value={nameInput} onChange={e => setNameInput(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter" && nameInput.trim()) setView("cert"); }}
+          placeholder="Navê te... / اسمك..."
+          style={{ flex: 1, background: "#1E1608", border: "0.5px solid rgba(212,147,14,0.3)", borderRadius: 8, padding: "10px 12px", color: CREAM, fontFamily: "inherit", fontSize: 13, outline: "none" }} />
+        <button onClick={() => nameInput.trim() && setView("cert")}
+          style={{ background: LEVELS[certLevel].color, border: "none", color: "#0D0900", padding: "10px 16px", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>→</button>
+      </div>
+    </div>
+  );
+
+  // ── CERT DISPLAY
+  if (view === "cert") return (
+    <Certificate name={nameInput} level={certLevel} onBack={() => setView("levels")} />
+  );
+
+  return null;
+}
+
+
+// ─── FERHENG TAB (DICTIONARY) ──────────────────────────────────────────────────
+const SYS_DICT = `Tu wergêrê Kurmancî yî. Bikarhêner peyivekê bi Erebî an Îngilîzî dinivîse, tu wergera Kurmancî (Latin) ya wê peyivê bidî.
+
+Format:
+🔤 Kurmancî: [peyiv]
+🗣️ Bilêvkirin: [bi Erebî]
+📝 Mînak: [hevokeke hêsan bi Kurmancî + wergera Erebî]
+🔁 Hevwate: [alternatîf eger hebin]
+
+Bersivên xwe kurt bide. Eger peyiv tune be, bibêje û alternatîvekê pêşkêş bike.`;
+
+// ─── STATIC DICTIONARY — 0 API cost ──────────────────────────────────────────
+const STATIC_DICT = {
+  "ماء":"🔤 Kurmancî: Av\n🗣️ Bilêvkirin: آف\n📝 Mînak: Ez av vexwim (أنا أشرب ماء)\n🔁 Hevwate: -",
+  "خبز":"🔤 Kurmancî: Nan\n🗣️ Bilêvkirin: نان\n📝 Mînak: Nan xweş e (الخبز لذيذ)\n🔁 Hevwate: -",
+  "لحم":"🔤 Kurmancî: Goşt\n🗣️ Bilêvkirin: غوشت\n📝 Mînak: Goşt dixwim (آكل لحماً)\n🔁 Hevwate: -",
+  "شاي":"🔤 Kurmancî: Çay\n🗣️ Bilêvkirin: تشاي\n📝 Mînak: Çayê vexwe (اشرب الشاي)\n🔁 Hevwate: -",
+  "حليب":"🔤 Kurmancî: Şîr\n🗣️ Bilêvkirin: شير\n📝 Mînak: Şîr baş e (الحليب جيد)\n🔁 Hevwate: -",
+  "أرز":"🔤 Kurmancî: Birinc\n🗣️ Bilêvkirin: بيرينج\n📝 Mînak: Birinc dixwim (آكل أرزاً)\n🔁 Hevwate: -",
+  "فاكهة":"🔤 Kurmancî: Mêwe\n🗣️ Bilêvkirin: ميوه\n📝 Mînak: Mêwe dixwim (آكل فاكهة)\n🔁 Hevwate: -",
+  "سكر":"🔤 Kurmancî: Şekir\n🗣️ Bilêvkirin: شيكير\n📝 Mînak: Şekir şîrîn e (السكر حلو)\n🔁 Hevwate: -",
+  "واحد":"🔤 Kurmancî: Yek\n🗣️ Bilêvkirin: ييك\n📝 Mînak: Yek nan bide min (أعطني خبزة)\n🔁 Hevwate: -",
+  "اثنان":"🔤 Kurmancî: Du\n🗣️ Bilêvkirin: دو\n📝 Mînak: Du keç hene (هناك فتاتان)\n🔁 Hevwate: -",
+  "ثلاثة":"🔤 Kurmancî: Sê\n🗣️ Bilêvkirin: سيه\n📝 Mînak: Sê roj man (بقيت ثلاثة أيام)\n🔁 Hevwate: -",
+  "عشرة":"🔤 Kurmancî: Deh\n🗣️ Bilêvkirin: ديه\n📝 Mînak: Deh sal berê (قبل عشر سنوات)\n🔁 Hevwate: -",
+  "أحمر":"🔤 Kurmancî: Sor\n🗣️ Bilêvkirin: صور\n📝 Mînak: Ala Kurdistanê sor e (علم كردستان أحمر)\n🔁 Hevwate: -",
+  "أخضر":"🔤 Kurmancî: Kesk\n🗣️ Bilêvkirin: كيسك\n📝 Mînak: Darên kesk (الأشجار الخضراء)\n🔁 Hevwate: -",
+  "أصفر":"🔤 Kurmancî: Zer\n🗣️ Bilêvkirin: زيير\n📝 Mînak: Roj a zer (الشمس الصفراء)\n🔁 Hevwate: -",
+  "أزرق":"🔤 Kurmancî: Şîn\n🗣️ Bilêvkirin: شين\n📝 Mînak: Ezman şîn e (السماء زرقاء)\n🔁 Hevwate: -",
+  "أبيض":"🔤 Kurmancî: Spî\n🗣️ Bilêvkirin: سبي\n📝 Mînak: Berf spî ye (الثلج أبيض)\n🔁 Hevwate: -",
+  "أسود":"🔤 Kurmancî: Reş\n🗣️ Bilêvkirin: ريش\n📝 Mînak: Şev reş e (الليل أسود)\n🔁 Hevwate: -",
+  "أب":"🔤 Kurmancî: Bav\n🗣️ Bilêvkirin: باف\n📝 Mînak: Bavê min (أبي)\n🔁 Hevwate: Dêûbav",
+  "أم":"🔤 Kurmancî: Dê\n🗣️ Bilêvkirin: ديه\n📝 Mînak: Diya min (أمي)\n🔁 Hevwate: Dayik",
+  "أخ":"🔤 Kurmancî: Bira\n🗣️ Bilêvkirin: بيرا\n📝 Mînak: Biraya min (أخي)\n🔁 Hevwate: -",
+  "أخت":"🔤 Kurmancî: Xwişk\n🗣️ Bilêvkirin: خوِشك\n📝 Mînak: Xwişka min (أختي)\n🔁 Hevwate: -",
+  "جد":"🔤 Kurmancî: Kal\n🗣️ Bilêvkirin: كال\n📝 Mînak: Kalê min pîr e (جدي كبير)\n🔁 Hevwate: Bapîr",
+  "جدة":"🔤 Kurmancî: Pîr\n🗣️ Bilêvkirin: بير\n📝 Mînak: Pîra min (جدتي)\n🔁 Hevwate: Malbat",
+  "ابن":"🔤 Kurmancî: Kur\n🗣️ Bilêvkirin: كور\n📝 Mînak: Kurê min (ابني)\n🔁 Hevwate: -",
+  "ابنة":"🔤 Kurmancî: Keç\n🗣️ Bilêvkirin: كيتش\n📝 Mînak: Keça min (ابنتي)\n🔁 Hevwate: -",
+  "مرحبا":"🔤 Kurmancî: Silav\n🗣️ Bilêvkirin: سيلاف\n📝 Mînak: Silav, tu baş î? (مرحبا كيف حالك)\n🔁 Hevwate: Xweş hatî",
+  "شكراً":"🔤 Kurmancî: Spas\n🗣️ Bilêvkirin: سباس\n📝 Mînak: Spas ji te re (شكراً لك)\n🔁 Hevwate: Spasî",
+  "مع السلامة":"🔤 Kurmancî: Bi xatirê te\n🗣️ Bilêvkirin: بي خاتيريه تيه\n📝 Mînak: Bi xatirê te heval (مع السلامة)\n🔁 Hevwate: -",
+  "أهلاً":"🔤 Kurmancî: Xweş hatî\n🗣️ Bilêvkirin: خويش هاتي\n📝 Mînak: Xweş hatî mala me (أهلاً بك)\n🔁 Hevwate: Silav",
+  "كيف حالك":"🔤 Kurmancî: Tu çawa yî?\n🗣️ Bilêvkirin: تو تشاوا يي\n📝 Mînak: Silav, tu çawa yî? (كيف حالك)\n🔁 Hevwate: -",
+  "بخير":"🔤 Kurmancî: Baş im\n🗣️ Bilêvkirin: باش إم\n📝 Mînak: Ez baş im, spas (أنا بخير شكراً)\n🔁 Hevwate: Xweş im",
+  "جبل":"🔤 Kurmancî: Çiya\n🗣️ Bilêvkirin: تشييا\n📝 Mînak: Çiyayên Kurdistanê bilind in (جبال كردستان شامخة)\n🔁 Hevwate: -",
+  "نهر":"🔤 Kurmancî: Rûbar\n🗣️ Bilêvkirin: روبار\n📝 Mînak: Rûbar diherike (النهر يجري)\n🔁 Hevwate: Çem",
+  "شمس":"🔤 Kurmancî: Tavê\n🗣️ Bilêvkirin: تافيه\n📝 Mînak: Tavê xweş e (الشمس جميلة)\n🔁 Hevwate: Roj",
+  "قمر":"🔤 Kurmancî: Heyv\n🗣️ Bilêvkirin: هيف\n📝 Mînak: Heyv geş e (القمر مضيء)\n🔁 Hevwate: -",
+  "شجرة":"🔤 Kurmancî: Dar\n🗣️ Bilêvkirin: دار\n📝 Mînak: Dar bilind e (الشجرة طويلة)\n🔁 Hevwate: -",
+  "مطر":"🔤 Kurmancî: Baran\n🗣️ Bilêvkirin: باران\n📝 Mînak: Baran dibare (المطر يهطل)\n🔁 Hevwate: -",
+  "ثلج":"🔤 Kurmancî: Berfê\n🗣️ Bilêvkirin: بيرفيه\n📝 Mînak: Berf dibare (الثلج يتساقط)\n🔁 Hevwate: -",
+  "زهرة":"🔤 Kurmancî: Kulîlk\n🗣️ Bilêvkirin: كوليلك\n📝 Mînak: Kulîlk xweş e (الزهرة جميلة)\n🔁 Hevwate: Gul",
+  "بيت":"🔤 Kurmancî: Mal\n🗣️ Bilêvkirin: مال\n📝 Mînak: Malê min (بيتي)\n🔁 Hevwate: Xane",
+  "مدرسة":"🔤 Kurmancî: Dibistan\n🗣️ Bilêvkirin: ديبيستان\n📝 Mînak: Ez diçim dibistanê (أذهب للمدرسة)\n🔁 Hevwate: Mekteb",
+  "مدينة":"🔤 Kurmancî: Bajêr\n🗣️ Bilêvkirin: باجير\n📝 Mînak: Bajêrê mezin (المدينة الكبيرة)\n🔁 Hevwate: -",
+  "سوق":"🔤 Kurmancî: Bazêr\n🗣️ Bilêvkirin: بازير\n📝 Mînak: Diçim bazêrê (أذهب للسوق)\n🔁 Hevwate: -",
+  "مسجد":"🔤 Kurmancî: Mizgeft\n🗣️ Bilêvkirin: ميزغيفت\n📝 Mînak: Diçim mizgeftê (أذهب للمسجد)\n🔁 Hevwate: -",
+  "حب":"🔤 Kurmancî: Evîn\n🗣️ Bilêvkirin: إفين\n📝 Mînak: Ez te hez dikim (أنا أحبك)\n🔁 Hevwate: Hez kirin",
+  "صديق":"🔤 Kurmancî: Heval\n🗣️ Bilêvkirin: هيفال\n📝 Mînak: Hevala min (صديقتي)\n🔁 Hevwate: Hogir",
+  "سعيد":"🔤 Kurmancî: Kêfxweş\n🗣️ Bilêvkirin: كيفخويش\n📝 Mînak: Ez kêfxweş im (أنا سعيد)\n🔁 Hevwate: Şa",
+  "حزين":"🔤 Kurmancî: Xemgîn\n🗣️ Bilêvkirin: خيمغين\n📝 Mînak: Ez xemgîn im (أنا حزين)\n🔁 Hevwate: Mixabin",
+  "حرية":"🔤 Kurmancî: Azadî\n🗣️ Bilêvkirin: آزادي\n📝 Mînak: Azadî girîng e (الحرية مهمة)\n🔁 Hevwate: Serbestî",
+  "وطن":"🔤 Kurmancî: Welat\n🗣️ Bilêvkirin: ويلات\n📝 Mînak: Welata min Kurdistan e (وطني كردستان)\n🔁 Hevwate: Ax",
+  "صحن":"🔤 Kurmancî: Tas / Firaq\n🗣️ Bilêvkirin: طاس / فيراق\n📝 Mînak: Xwarin di tasê de ye (الطعام في الصحن)\n🔁 Hevwate: Siênî",
+  "ملعقة":"🔤 Kurmancî: Kevçî\n🗣️ Bilêvkirin: كيفتشي\n📝 Mînak: Bi kevçiyê bixwe (كل بالملعقة)\n🔁 Hevwate: -",
+  "سكين":"🔤 Kurmancî: Kêr\n🗣️ Bilêvkirin: كير\n📝 Mînak: Kêr tûj e (السكين حادة)\n🔁 Hevwate: -",
+  "water":"🔤 Kurmancî: Av\n🗣️ Bilêvkirin: آف\n📝 Mînak: Ez av vexwim (I drink water)\n🔁 Hevwate: -",
+  "bread":"🔤 Kurmancî: Nan\n🗣️ Bilêvkirin: نان\n📝 Mînak: Nan xweş e (Bread is delicious)\n🔁 Hevwate: -",
+  "hello":"🔤 Kurmancî: Silav\n🗣️ Bilêvkirin: سيلاف\n📝 Mînak: Silav, tu baş î? (Hello, how are you?)\n🔁 Hevwate: Xweş hatî",
+  "thank you":"🔤 Kurmancî: Spas\n🗣️ Bilêvkirin: سباس\n📝 Mînak: Spas ji te re (Thank you)\n🔁 Hevwate: Spasî",
+  "friend":"🔤 Kurmancî: Heval\n🗣️ Bilêvkirin: هيفال\n📝 Mînak: Hevala min (My friend)\n🔁 Hevwate: Hogir",
+  "love":"🔤 Kurmancî: Evîn\n🗣️ Bilêvkirin: إفين\n📝 Mînak: Ez te hez dikim (I love you)\n🔁 Hevwate: Hez kirin",
+  "house":"🔤 Kurmancî: Mal\n🗣️ Bilêvkirin: مال\n📝 Mînak: Malê min (My house)\n🔁 Hevwate: Xane",
+  "mountain":"🔤 Kurmancî: Çiya\n🗣️ Bilêvkirin: تشييا\n📝 Mînak: Çiyayên bilind (High mountains)\n🔁 Hevwate: -",
+  "sun":"🔤 Kurmancî: Tavê\n🗣️ Bilêvkirin: تافيه\n📝 Mînak: Tavê xweş e (The sun is beautiful)\n🔁 Hevwate: Roj",
+  "freedom":"🔤 Kurmancî: Azadî\n🗣️ Bilêvkirin: آزادي\n📝 Mînak: Azadî girîng e (Freedom is important)\n🔁 Hevwate: Serbestî",
+  "good":"🔤 Kurmancî: Baş\n🗣️ Bilêvkirin: باش\n📝 Mînak: Tu baş î? (Are you good?)\n🔁 Hevwate: Xweş",
+  "yes":"🔤 Kurmancî: Erê\n🗣️ Bilêvkirin: إريه\n📝 Mînak: Erê, ez dizanim (Yes, I know)\n🔁 Hevwate: Belê",
+  "no":"🔤 Kurmancî: Na\n🗣️ Bilêvkirin: نا\n📝 Mînak: Na, ez nizanim (No, I don't know)\n🔁 Hevwate: Naxwazim",
+};
+
+// In-memory cache for API results
+const apiCache = {};
+
+const QUICK_WORDS = [
+  { ar: "ماء", ku: "Av" }, { ar: "خبز", ku: "Nan" }, { ar: "بيت", ku: "Mal" },
+  { ar: "شمس", ku: "Tavê" }, { ar: "جبل", ku: "Çiya" }, { ar: "أحمر", ku: "Sor" },
+  { ar: "أب", ku: "Bav" }, { ar: "أم", ku: "Dê" }, { ar: "مرحبا", ku: "Silav" },
+  { ar: "شكراً", ku: "Spas" }, { ar: "حب", ku: "Evîn" }, { ar: "صديق", ku: "Heval" },
+  { ar: "صحن", ku: "Tas" }, { ar: "حرية", ku: "Azadî" }, { ar: "وطن", ku: "Welat" },
+];
+
+function FerhengTab() {
+  const [query, setQuery] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [fromCache, setFromCache] = useState(false);
+  const G = "#D4930E", DIM = "#B8A07A", CREAM = "#F0DDB0";
+
+  async function translate(word) {
+    const w = word.trim().toLowerCase();
+    if (!w) return;
+    setLoading(true); setResult(null); setFromCache(false);
+
+    // 1. Check static dictionary first (free)
+    const staticKey = Object.keys(STATIC_DICT).find(k => k === w || k === word.trim());
+    if (staticKey) {
+      const reply = STATIC_DICT[staticKey];
+      setResult({ word: word.trim(), reply });
+      setHistory(prev => [{ word: word.trim(), reply }, ...prev.filter(h => h.word !== word.trim()).slice(0, 9)]);
+      setFromCache(true);
+      setLoading(false);
+      return;
+    }
+
+    // 2. Check API cache (free if already searched)
+    if (apiCache[w]) {
+      setResult({ word: word.trim(), reply: apiCache[w] });
+      setHistory(prev => [{ word: word.trim(), reply: apiCache[w] }, ...prev.filter(h => h.word !== word.trim()).slice(0, 9)]);
+      setFromCache(true);
+      setLoading(false);
+      return;
+    }
+
+    // 3. Call API only if not in any cache
+    try {
+      const reply = await callAI(SYS_DICT, [{ role: "user", content: word.trim() }]);
+      apiCache[w] = reply;
+      setResult({ word: word.trim(), reply });
+      setHistory(prev => [{ word: word.trim(), reply }, ...prev.filter(h => h.word !== word.trim()).slice(0, 9)]);
+    } catch {
+      setResult({ word: word.trim(), reply: "Bibore, xeletiyek çêbû." });
+    }
+    setLoading(false);
   }
 
   return (
-    <div style={{
-      height: 580, display: "flex", flexDirection: "column",
-      background: "#0D0900", borderRadius: 12, overflow: "hidden",
-      fontFamily: "system-ui, sans-serif", fontWeight: 300,
-    }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* Search bar */}
+      <div style={{ padding: "12px 12px 8px", flexShrink: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: G, letterSpacing: "0.08em", marginBottom: 8, textAlign: "center" }}>
+          📖 FERHENG · القاموس
+        </div>
+        <div style={{ display: "flex", gap: 7, background: "#261D0A", border: "0.5px solid rgba(212,147,14,0.3)", borderRadius: 10, padding: "6px 8px" }}>
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") { translate(query); setQuery(""); } }}
+            placeholder="اكتب كلمة بالعربي أو English..."
+            style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: CREAM, fontFamily: "inherit", fontSize: 13, caretColor: G }}
+          />
+          <button onClick={() => { translate(query); setQuery(""); }}
+            style={{ width: 30, height: 30, background: G, border: "none", borderRadius: 7, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 14 }}>
+            🔍
+          </button>
+        </div>
+      </div>
+
+      {/* Quick words */}
+      <div style={{ padding: "0 12px 10px", flexShrink: 0 }}>
+        <div style={{ fontSize: 9, color: DIM, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6, opacity: 0.7 }}>Peyivên bilez · كلمات سريعة</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+          {QUICK_WORDS.map((w, i) => (
+            <button key={i} onClick={() => translate(w.ar)}
+              style={{ background: "#1E1608", border: "0.5px solid rgba(212,147,14,0.2)", borderRadius: 20, padding: "4px 10px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", transition: "all 0.15s" }}>
+              <span style={{ fontSize: 11, color: CREAM }}>{w.ar}</span>
+              <span style={{ fontSize: 9, color: G }}>{w.ku}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Result or history */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "0 12px 12px" }}>
+        {loading && (
+          <div style={{ background: "#1E1608", border: "0.5px solid rgba(212,147,14,0.18)", borderRadius: 12, padding: "20px", textAlign: "center" }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 8 }}>
+              {[0,0.2,0.4].map((d,i) => <span key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: G, display: "inline-block", animation: `blink 1.2s ${d}s infinite` }} />)}
+            </div>
+            <div style={{ fontSize: 11, color: DIM }}>Werger tê sazkirin...</div>
+          </div>
+        )}
+
+        {result && !loading && (
+          <div style={{ background: "#1E1608", border: "0.5px solid rgba(212,147,14,0.3)", borderRadius: 12, padding: "16px", marginBottom: 12, animation: "fadeUp 0.3s ease" }}>
+            <div style={{ fontSize: 11, color: DIM, marginBottom: 8, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <span style={{ background: "rgba(212,147,14,0.1)", border: "0.5px solid rgba(212,147,14,0.2)", borderRadius: 4, padding: "2px 8px", color: G, fontWeight: 600 }}>"{result.word}"</span>
+              <span>→ Kurmancî</span>
+              {fromCache && <span style={{ fontSize: 9, color: "#4CAF50", border: "0.5px solid rgba(76,175,80,0.3)", borderRadius: 3, padding: "1px 6px" }}>⚡ cached · مجاني</span>}
+            </div>
+            <div style={{ fontSize: 13, color: CREAM, lineHeight: 1.9, whiteSpace: "pre-wrap" }}>{result.reply}</div>
+          </div>
+        )}
+
+        {history.length > 0 && !loading && (
+          <div>
+            <div style={{ fontSize: 9, color: DIM, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8, opacity: 0.7 }}>Dîroka lêgerînê · History</div>
+            {history.slice(result ? 1 : 0).map((h, i) => (
+              <div key={i} onClick={() => setResult(h)}
+                style={{ background: "#161008", border: "0.5px solid rgba(212,147,14,0.12)", borderRadius: 8, padding: "10px 12px", marginBottom: 6, cursor: "pointer", transition: "all 0.15s" }}>
+                <div style={{ fontSize: 11, color: G, fontWeight: 600, marginBottom: 2 }}>"{h.word}"</div>
+                <div style={{ fontSize: 10, color: DIM, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {h.reply.split("\n")[0].slice(0, 50)}...
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!result && !loading && history.length === 0 && (
+          <div style={{ textAlign: "center", padding: "30px 0", color: DIM }}>
+            <div style={{ fontSize: 30, marginBottom: 10 }}>📖</div>
+            <div style={{ fontSize: 12 }}>Peyivekê binivîse û werger bistîne</div>
+            <div style={{ fontSize: 11, opacity: 0.6, marginTop: 4 }}>اكتب كلمة للترجمة الفورية</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN APP ──────────────────────────────────────────────────────────────────
+function newConv() {
+  return { id: Date.now(), title: "Muhabet", messages: [] };
+}
+
+export default function CihanaApp() {
+  const [tab, setTab] = useState("chat");
+  const [conversations, setConversations] = useState([newConv()]);
+  const [activeId, setActiveId] = useState(conversations[0].id);
+  const [msgCount, setMsgCount] = useState(0);
+
+  function handleNewChat() {
+    const c = newConv();
+    setConversations(prev => [c, ...prev]);
+    setActiveId(c.id);
+    setTab("chat");
+  }
+
+  function handleUpdateChat(id, messages, title) {
+    setConversations(prev => prev.map(c => c.id === id ? { ...c, messages, title } : c));
+  }
+
+  return (
+    <div style={{ height: 580, display: "flex", flexDirection: "column", background: "#0D0900", borderRadius: 12, overflow: "hidden", fontFamily: "system-ui, sans-serif", fontWeight: 300 }}>
       <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes blink { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
-        .sgb:hover { background: rgba(212,147,14,0.12) !important; border-color: #D4930E !important; color: #D4930E !important; }
-        .msg-in { animation: fadeUp 0.3s ease; }
-        ::-webkit-scrollbar { width: 3px; }
-        ::-webkit-scrollbar-thumb { background: rgba(212,147,14,0.2); border-radius: 2px; }
+        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes blink{0%,100%{opacity:0.3}50%{opacity:1}}
+        .sgb:hover{background:rgba(212,147,14,0.12)!important;border-color:#D4930E!important;color:#D4930E!important}
+        .msg-in{animation:fadeUp 0.3s ease}
+        ::-webkit-scrollbar{width:3px}
+        ::-webkit-scrollbar-thumb{background:rgba(212,147,14,0.2);border-radius:2px}
       `}</style>
 
       {/* Header */}
       <div style={{ background: "#161008", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "0.5px solid rgba(212,147,14,0.18)", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-          <KurdishSun size={32} spin />
+          <KurdishSun size={30} spin />
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#D4930E", letterSpacing: "0.1em", lineHeight: 1 }}>CIHANA CHAT</div>
-            <div style={{ fontSize: 10, color: "#B8A07A", letterSpacing: "0.05em", marginTop: 2 }}>Dîroka Kurdî · Kurdish History AI</div>
+            <div style={{ fontSize: 10, color: "#B8A07A", marginTop: 2 }}>Dîroka Kurdî · Kurdish AI</div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4CAF50" }} />
-          <button style={{ background: "transparent", border: "0.5px solid rgba(212,147,14,0.2)", color: "#B8A07A", padding: "4px 10px", fontSize: 11, cursor: "pointer", borderRadius: 3 }}>Serhêl</button>
+        <div style={{ display: "flex", gap: 6 }}>
+          {[["chat","💬"],["learn","📚"],["dict","📖"]].map(([t, label]) => (
+            <button key={t} onClick={() => setTab(t)}
+              style={{ background: tab === t ? "rgba(212,147,14,0.15)" : "transparent", border: `0.5px solid ${tab === t ? "#D4930E" : "rgba(212,147,14,0.2)"}`, color: tab === t ? "#D4930E" : "#B8A07A", padding: "4px 10px", fontSize: 14, cursor: "pointer", borderRadius: 4, transition: "all 0.2s" }}>
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Flag stripe */}
+      {/* Kurdish flag stripe */}
       <div style={{ height: 3, background: "linear-gradient(90deg,#C8010C 33.3%,#F0DDB0 33.3% 66.6%,#2A5618 66.6%)", flexShrink: 0 }} />
 
-      {/* Chat area */}
-      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
-        {!started ? (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "20px 16px", textAlign: "center" }}>
-            <KurdishSun size={68} spin />
-            <div style={{ fontSize: 22, fontWeight: 700, color: "#D4930E", letterSpacing: "0.04em", textTransform: "uppercase", margin: "14px 0 8px", lineHeight: 1.1 }}>
-              Xweş hatî, heval
-            </div>
-            <p style={{ fontStyle: "italic", fontSize: 12, color: "#B8A07A", lineHeight: 1.7, maxWidth: 280, marginBottom: 18 }}>
-              Ez Cihana me — alikarê te yê dîroka Kurdî. Pirsên xwe bi Kurmancî, Erebî, an Îngilîzî bipirse.
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 7, justifyContent: "center" }}>
-              {SUGGESTIONS.map(s => (
-                <button key={s} className="sgb" onClick={() => send(s)}
-                  style={{ background: "transparent", border: "1px solid rgba(212,147,14,0.3)", color: "#F0DDB0", padding: "6px 12px", fontSize: 11, borderRadius: 999, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", transition: "all 0.2s" }}>
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", padding: "12px 10px", gap: 10 }}>
-            {messages.map((m, i) => (
-              <div key={i} className="msg-in" style={{ display: "flex", gap: 8, maxWidth: "95%", alignSelf: m.role === "user" ? "flex-end" : "flex-start", flexDirection: m.role === "user" ? "row-reverse" : "row" }}>
-                <div style={{ width: 24, height: 24, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, marginTop: 2, border: "0.5px solid rgba(212,147,14,0.25)", background: m.role === "user" ? "rgba(42,86,24,0.25)" : "rgba(212,147,14,0.1)", color: m.role === "user" ? "#7DBF6E" : "#D4930E" }}>
-                  {m.role === "user" ? "T" : "☀"}
-                </div>
-                <div style={{ background: m.role === "user" ? "rgba(42,86,24,0.18)" : "#1E1608", border: m.role === "user" ? "0.5px solid rgba(42,86,24,0.3)" : "0.5px solid rgba(212,147,14,0.18)", borderRadius: m.role === "user" ? "14px 4px 14px 14px" : "4px 14px 14px 14px", padding: "9px 12px", fontSize: 13, lineHeight: 1.65, color: "#F0DDB0", whiteSpace: "pre-wrap" }}>
-                  {m.content}
-                </div>
-              </div>
-            ))}
-            {loading && (
-              <div style={{ display: "flex", gap: 8, alignSelf: "flex-start" }}>
-                <div style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(212,147,14,0.1)", border: "0.5px solid rgba(212,147,14,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#D4930E" }}>☀</div>
-                <div style={{ background: "#1E1608", border: "0.5px solid rgba(212,147,14,0.18)", borderRadius: "4px 14px 14px 14px", padding: "12px 14px", display: "flex", gap: 4, alignItems: "center" }}>
-                  {[0, 0.2, 0.4].map((d, i) => (
-                    <span key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: "#D4930E", display: "inline-block", animation: `blink 1.2s ${d}s infinite` }} />
-                  ))}
-                </div>
-              </div>
-            )}
-            <div ref={bottomRef} />
-          </div>
-        )}
-      </div>
-
-      {/* Input */}
-      <div style={{ flexShrink: 0, padding: "8px 10px 6px", background: "#161008", borderTop: "0.5px solid rgba(212,147,14,0.18)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 7, background: "#261D0A", border: "0.5px solid rgba(212,147,14,0.22)", borderRadius: 10, padding: "6px 8px" }}>
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }}
-            placeholder="Pirsên xwe binivîse... (Kurdish, Arabic, English)"
-            style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: "#F0DDB0", fontFamily: "inherit", fontSize: 13, caretColor: "#D4930E" }}
+      {/* Content */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {tab === "chat" ? (
+          <ChatTab
+            conversations={conversations}
+            activeId={activeId}
+            onNewChat={handleNewChat}
+            onSelectChat={setActiveId}
+            onUpdateChat={handleUpdateChat}
+            msgCount={msgCount}
+            onMsgSent={() => setMsgCount(n => n + 1)}
           />
-          <button onClick={() => send(input)} style={{ width: 30, height: 30, background: "#D4930E", border: "none", borderRadius: 7, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0D0900" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
-            </svg>
-          </button>
-        </div>
-        <div style={{ textAlign: "center", fontSize: 10, color: "#B8A07A", opacity: 0.4, marginTop: 4, letterSpacing: "0.04em" }}>
-          Cihana · AI ya Dîroka Kurdî · Beta
-        </div>
+        ) : tab === "learn" ? <LearnTab /> : <FerhengTab />}
       </div>
     </div>
   );
